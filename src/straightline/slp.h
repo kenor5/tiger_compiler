@@ -151,15 +151,8 @@ class Table {
       : id(std::move(id)), value(value), tail(tail) {}
   int Lookup(const std::string &key) const;
   Table *Update(const std::string &key, int val) const;
-  void show() {
-    
-      std::cout << id << ' ' << value << std::endl;
-    if (tail) 
-    std::cout << tail->id << ' ' << tail->value << std::endl;
-    
-  }
 
-//  private:
+ private:
   std::string id;
   int value;
   const Table *tail;
