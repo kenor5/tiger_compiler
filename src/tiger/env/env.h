@@ -11,6 +11,7 @@ public:
 
   explicit EnvEntry(bool readonly = true) : readonly_(readonly) {}
   virtual ~EnvEntry() = default;
+  virtual bool type() = 0;
 };
 
 class VarEntry : public EnvEntry {
@@ -20,6 +21,7 @@ public:
   // For lab4(semantic analysis) only
   explicit VarEntry(type::Ty *ty, bool readonly = false)
       : EnvEntry(readonly), ty_(ty){};
+  bool type() {return 0;};
 };
 
 class FunEntry : public EnvEntry {
@@ -30,7 +32,7 @@ public:
   // For lab4(semantic analysis) only
   FunEntry(type::TyList *formals, type::Ty *result)
       : formals_(formals), result_(result){}
-
+  bool type() {return 1;};
 };
 
 using VEnv = sym::Table<env::EnvEntry>;
