@@ -12,16 +12,19 @@ class FieldList;
 
 class Ty {
 public:
+enum kind {Nil, Int, String, Void, Record, Array, Name};
+kind kind_;
   virtual Ty *ActualTy();
   virtual bool IsSameType(Ty *);
 
 protected:
   Ty() = default;
+  Ty(kind kind):kind_(kind){}
 };
 
 class NilTy : public Ty {
 public:
-  static NilTy *Instance() { return &nilty_; }
+  static NilTy *Instance() {nilty_.kind_ = Nil; return &nilty_; }
 
 private:
   static NilTy nilty_;
@@ -29,7 +32,7 @@ private:
 
 class IntTy : public Ty {
 public:
-  static IntTy *Instance() { return &intty_; }
+  static IntTy *Instance() { intty_.kind_ = Int; return &intty_; }
 
 private:
   static IntTy intty_;
@@ -37,7 +40,7 @@ private:
 
 class StringTy : public Ty {
 public:
-  static StringTy *Instance() { return &stringty_; }
+  static StringTy *Instance() {stringty_.kind_ = String; return &stringty_; }
 
 private:
   static StringTy stringty_;
@@ -45,7 +48,7 @@ private:
 
 class VoidTy : public Ty {
 public:
-  static VoidTy *Instance() { return &voidty_; }
+  static VoidTy *Instance() {voidty_.kind_ = Void; return &voidty_; }
 
 private:
   static VoidTy voidty_;
@@ -55,14 +58,14 @@ class RecordTy : public Ty {
 public:
   FieldList *fields_;
 
-  explicit RecordTy(FieldList *fields) : fields_(fields) {}
+  explicit RecordTy(FieldList *fields) : fields_(fields), Ty(Record) {}
 };
 
 class ArrayTy : public Ty {
 public:
   Ty *ty_;
 
-  explicit ArrayTy(Ty *ty) : ty_(ty) {}
+  explicit ArrayTy(Ty *ty) : ty_(ty),Ty(Array) {}
 };
 
 class NameTy : public Ty {
@@ -70,7 +73,7 @@ public:
   sym::Symbol *sym_;
   Ty *ty_;
 
-  NameTy(sym::Symbol *sym, Ty *ty) : sym_(sym), ty_(ty) {}
+  NameTy(sym::Symbol *sym, Ty *ty) : sym_(sym), ty_(ty), Ty(Name) {}
 
   Ty *ActualTy() override;
 };

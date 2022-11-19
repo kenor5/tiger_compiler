@@ -35,6 +35,7 @@ public:
   VarEntry(tr::Access *access, type::Ty *ty, bool readonly = false)
       : EnvEntry(readonly), ty_(ty), access_(access){};
 
+  bool type() override {return 0;}
 };
 
 class FunEntry : public EnvEntry {
@@ -53,7 +54,7 @@ public:
   FunEntry(tr::Level *level, temp::Label *label, type::TyList *formals,
            type::Ty *result)
       : formals_(formals), result_(result), level_(level), label_(label) {}
-
+  bool type() override {return 1;}
 };
 
 using VEnv = sym::Table<env::EnvEntry>;

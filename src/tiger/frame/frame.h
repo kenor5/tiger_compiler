@@ -4,6 +4,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
@@ -69,6 +70,7 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
+  virtual tree::Exp *toExp(tree::Exp *e = nullptr)const = 0;
   
   virtual ~Access() = default;
   
@@ -76,6 +78,25 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  temp::Label *name_;
+  std::list<Access *> formals_;
+  int offset_;
+  int maxArgs;
+
+
+  explicit Frame(temp::Label *name) :
+  name_(name), offset_(0), maxArgs(0){}
+
+  virtual frame::Access *AllocLocal(bool escape) {
+            return nullptr;
+  }
+  
+  virtual void setFormals(const std::list<bool> &escapes) {
+        }
+
+
+
 };
 
 /**
@@ -85,6 +106,7 @@ class Frame {
 class Frag {
 public:
   virtual ~Frag() = default;
+  enum kind{PROC, STRING};
 };
 
 class StringFrag : public Frag {
