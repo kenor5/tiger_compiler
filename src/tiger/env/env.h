@@ -18,6 +18,7 @@ public:
 
   explicit EnvEntry(bool readonly = true) : readonly_(readonly) {}
   virtual ~EnvEntry() = default;
+  virtual bool type() = 0;
 };
 
 class VarEntry : public EnvEntry {
@@ -27,11 +28,14 @@ public:
 
   // For lab4(semantic analysis) only
   explicit VarEntry(type::Ty *ty, bool readonly = false)
+
       : EnvEntry(readonly), ty_(ty), access_(nullptr){};
 
   // For lab5(translate IR tree)
   VarEntry(tr::Access *access, type::Ty *ty, bool readonly = false)
       : EnvEntry(readonly), ty_(ty), access_(access){};
+
+  bool type() override {return 0;}
 };
 
 class FunEntry : public EnvEntry {
@@ -43,12 +47,14 @@ public:
 
   // For lab4(semantic analysis) only
   FunEntry(type::TyList *formals, type::Ty *result)
+
       : formals_(formals), result_(result), level_(nullptr), label_(nullptr) {}
 
   // For lab5(translate IR tree)
   FunEntry(tr::Level *level, temp::Label *label, type::TyList *formals,
            type::Ty *result)
       : formals_(formals), result_(result), level_(level), label_(label) {}
+  bool type() override {return 1;}
 };
 
 using VEnv = sym::Table<env::EnvEntry>;

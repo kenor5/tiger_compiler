@@ -4,6 +4,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
@@ -63,6 +64,8 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  [[nodiscard]] virtual temp::Temp *Dx() = 0;
+
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;
@@ -71,6 +74,7 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
+  virtual tree::Exp *toExp(tree::Exp *e = nullptr)const = 0;
   
   virtual ~Access() = default;
   
@@ -78,6 +82,30 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  temp::Label *name_;
+  std::list<Access *> formals_;
+  int offset_;
+  int maxArgs;
+
+  tree::Stm *view_shift;
+
+
+  explicit Frame(temp::Label *name) :
+  name_(name), offset_(0), maxArgs(0){}
+
+  virtual frame::Access *AllocLocal(bool escape) {
+            return nullptr;
+  }
+  
+  virtual void setFormals(const std::list<bool> &escapes) {
+        }
+
+  [[nodiscard]] std::string GetLabel() const {
+            return temp::LabelFactory::LabelString(name_);
+        }
+
+
 };
 
 /**

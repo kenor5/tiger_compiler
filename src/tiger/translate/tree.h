@@ -167,6 +167,9 @@ public:
   virtual void Print(FILE *out, int d) const = 0;
   virtual canon::StmAndExp Canon() = 0;
   virtual temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) = 0;
+
+  enum Type{BINOP, MEM, TEMP, ESEQ, NAME, CONST, CALL};
+  virtual Type type()=0;
 };
 
 class BinopExp : public Exp {
@@ -181,6 +184,7 @@ public:
   void Print(FILE *out, int d) const override;
   canon::StmAndExp Canon() override;
   temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) override;
+  Type type() {return BINOP;}
 };
 
 class MemExp : public Exp {
@@ -193,6 +197,7 @@ public:
   void Print(FILE *out, int d) const override;
   canon::StmAndExp Canon() override;
   temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) override;
+  Type type() {return MEM;}
 };
 
 class TempExp : public Exp {
@@ -205,6 +210,7 @@ public:
   void Print(FILE *out, int d) const override;
   canon::StmAndExp Canon() override;
   temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) override;
+  Type type() {return TEMP;}
 };
 
 class EseqExp : public Exp {
@@ -218,6 +224,7 @@ public:
   void Print(FILE *out, int d) const override;
   canon::StmAndExp Canon() override;
   temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) override;
+  Type type() {return ESEQ;}
 };
 
 class NameExp : public Exp {
@@ -230,6 +237,7 @@ public:
   void Print(FILE *out, int d) const override;
   canon::StmAndExp Canon() override;
   temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) override;
+  Type type() {return NAME;}
 };
 
 class ConstExp : public Exp {
@@ -242,6 +250,7 @@ public:
   void Print(FILE *out, int d) const override;
   canon::StmAndExp Canon() override;
   temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) override;
+  Type type() {return CONST;}
 };
 
 class CallExp : public Exp {
@@ -255,6 +264,7 @@ public:
   void Print(FILE *out, int d) const override;
   canon::StmAndExp Canon() override;
   temp::Temp *Munch(assem::InstrList &instr_list, std::string_view fs) override;
+  Type type() {return CALL;}
 };
 
 class ExpList {
