@@ -160,11 +160,11 @@ void ProgTr::Translate() {
     venv_.get(),
     tenv_.get(),
     this->main_level_.get(),
-    temp::LabelFactory::NamedLabel("tigermain"),
+    temp::LabelFactory::NewLabel(),
     errormsg_.get()
     );
 
-//  frags->PushBack(new frame::ProcFrag(root->exp_->UnNx(), main_level_->frame_));
+ frags->PushBack(new frame::ProcFrag(root->exp_->UnNx(), main_level_->frame_));
 }
 
 } // namespace tr
@@ -175,7 +175,8 @@ tree::Exp *StaricLink(tr::Level *cur, tr::Level *target) {
   {
     if (!cur || !cur->parent_) return nullptr;
     // first param -> static link
-    rt = cur->frame_->formals_.front()->toExp(rt);
+    auto access = cur->frame_->formals_.front();
+    rt = access->toExp(rt);
     cur = cur->parent_;
   }
   return rt;
@@ -199,7 +200,7 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto var_entry = (env::VarEntry *)entry;
 
   auto exp = new tr::ExExp(var_entry->access_->access_->toExp(
-    StaricLink(var_entry->access_->level_, level)
+    StaricLink(level, var_entry->access_->level_)
   ));
   return new tr::ExpAndTy(exp, var_entry->ty_->ActualTy());
 
@@ -221,7 +222,7 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
           new tree::BinopExp(
             tree::BinOp::PLUS_OP, 
             var_trans->exp_->UnEx(),
-            new tree::ConstExp(cnt * 8)
+            new tree::ConstExp(cnt * reg_manager->WordSize())
           )
         )
       );
@@ -315,12 +316,18 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   tr::Exp *exp = nullptr;
 
+  auto max = [](int a, int b)->int{
+    if(a>b) return a;
+    return b;
+  };
   if (static_link) {
     arg_list_exp->Insert(static_link);
+    level->frame_->arg_num = max(level->frame_->arg_num, arg_list.size()+1);
     exp = new tr::ExExp(new tree::CallExp(new tree::NameExp(this->func_), arg_list_exp));
-  }else 
-  exp = new tr::ExExp(frame::ExternalCall(temp::LabelFactory::LabelString(this->func_), arg_list_exp));
-
+  }else {
+    exp = new tr::ExExp(frame::ExternalCall(temp::LabelFactory::LabelString(this->func_), arg_list_exp));
+    level->frame_->arg_num = max(level->frame_->arg_num, arg_list.size());
+  }
 
   return new tr::ExpAndTy(
     exp,
@@ -338,6 +345,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *rht = this->right_->Translate(venv, tenv, level, label, errormsg);
   tr::Exp *lft_exp = lft->exp_;
   tr::Exp *rht_exp = rht->exp_;
+  int pos = this->pos_;
   switch (this->oper_)
   {
   case absyn::PLUS_OP:
@@ -372,7 +380,15 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   case absyn::GE_OP:
     stm = new tree::CjumpStm(tree::RelOp::GE_OP, lft_exp->UnEx(), rht_exp->UnEx(), nullptr, nullptr);
     break;
-  
+  case absyn::AND_OP:{
+    absyn::IfExp *e = new absyn::IfExp(this->pos_, this->left_, this->right_, new absyn::IntExp(pos, 0));
+    return e->Translate(venv, tenv, level, label, errormsg);
+    break;
+  }
+  case absyn::OR_OP:{
+    absyn::IfExp *e = new absyn::IfExp(this->pos_, this->left_,new absyn::IntExp(pos, 1), this->right_);
+    return e->Translate(venv, tenv, level, label, errormsg);
+  }
   default:
     break;
   }
@@ -390,6 +406,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     return new tr::ExpAndTy(tmp, type::IntTy::Instance());
     
   }
+  assert(0);
   return nullptr;
 }
 
@@ -538,7 +555,7 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto done_label = temp::LabelFactory::NewLabel();
   auto body_label = temp::LabelFactory::NewLabel();
   auto tst = this->test_->Translate(venv, tenv, level, label, errormsg);
-  auto bdy = this->body_->Translate(venv, tenv, level, label, errormsg);
+  auto bdy = this->body_->Translate(venv, tenv, level, done_label, errormsg);
   tr::Cx c = tst->exp_->UnCx(errormsg);
   c.trues_.DoPatch(body_label);
   c.falses_.DoPatch(done_label);
@@ -567,17 +584,17 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto body_label = temp::LabelFactory::NewLabel();
+  auto test_label = temp::LabelFactory::NewLabel();
+  auto done_label = temp::LabelFactory::NewLabel();
   auto lo_trans = this->lo_->Translate(venv, tenv, level, label, errormsg);
   auto hi_trans = this->hi_->Translate(venv, tenv, level, label, errormsg);
   tr::Access *acc_i = tr::Access::AllocLocal(level, this->escape_);
   venv->BeginScope();
   venv->Enter(this->var_, new env::VarEntry(acc_i, lo_trans->ty_, true));
-  auto bdy_trans = this->body_->Translate(venv, tenv, level, label, errormsg);
+  auto bdy_trans = this->body_->Translate(venv, tenv, level, done_label, errormsg);
   venv->EndScope();
 
-  auto body_label = temp::LabelFactory::NewLabel();
-  auto test_label = temp::LabelFactory::NewLabel();
-  auto done_label = temp::LabelFactory::NewLabel();
 
   tree::Exp *sp = acc_i->access_->toExp(new tree::TempExp(reg_manager->FramePointer()));
   return new tr::ExpAndTy(
@@ -646,7 +663,7 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   if (!rt) return bdy_trans;
   else return new tr::ExpAndTy(
     new tr::ExExp(new tree::EseqExp(rt->UnNx(), bdy_trans->exp_->UnEx())),
-    bdy_trans->ty_->ActualTy()
+    bdy_trans->ty_
   );
 }
 
@@ -714,10 +731,15 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       it_ty++;
       it_field++;
     }
-    // tr::ExpAndTy *body_trans = func->body_->Translate(venv, tenv, func_entry->level_, label, errormsg);
+    tr::ExpAndTy *body_trans = func->body_->Translate(venv, tenv, func_entry->level_, label, errormsg);
      // seg fault
     venv->EndScope();
-
+    tree::Stm* stm;
+    // if (body_trans)
+      stm = new tree::MoveStm(new tree::TempExp(reg_manager->ReturnValue()), body_trans->exp_->UnEx());
+    // else stm = new tree::MoveStm(new tree::TempExp(reg_manager->ReturnValue()), new tree::ConstExp(0));
+    stm = frame::ProcEntryExit1(func_entry->level_->frame_, stm);
+    frags->PushBack(new frame::ProcFrag(stm, func_entry->level_->frame_));
   }
   return new tr::ExExp(new tree::ConstExp(0));
 }
@@ -733,7 +755,7 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto *access = tr::Access::AllocLocal(level, this->escape_);
   venv->Enter(this->var_, new env::VarEntry(access, init_ty));
 
-  tree::Exp *fp = StaricLink(access->level_, level);
+  tree::Exp *fp = StaricLink(level, access->level_);
   tr::Exp * var_trans = new tr::ExExp(access->access_->toExp(fp));
 
 

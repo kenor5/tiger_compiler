@@ -92,8 +92,9 @@ one:
     );}
     ;
 
-expseq:
-  exp {$$ = new absyn::SeqExp(scanner_.GetTokPos(), new absyn::ExpList($1));}
+expseq: 
+    {$$ = new absyn::SeqExp(scanner_.GetTokPos(), nullptr);}
+  | exp {$$ = new absyn::SeqExp(scanner_.GetTokPos(), new absyn::ExpList($1));}
   | sequencing_exps {$$ = new absyn::SeqExp(scanner_.GetTokPos(),$1);}
   ;
 
@@ -118,7 +119,7 @@ sequencing:
   ;
 
 sequencing_exps:
-  exp {$$ = new absyn::ExpList($1);}
+  exp SEMICOLON exp{$$ = (new absyn::ExpList($3)) -> Prepend($1);}
   | exp SEMICOLON sequencing_exps {$$ = $3 -> Prepend($1);}
   ;
 
@@ -236,7 +237,6 @@ exp:
   | IF exp THEN exp ELSE exp { $$ = new absyn::IfExp(scanner_.GetTokPos(), $2, $4, $6);}
   | IF exp THEN exp {$$ = new absyn::IfExp(scanner_.GetTokPos(), $2, $4, nullptr);}
   | WHILE exp DO exp {$$ = new absyn::WhileExp(scanner_.GetTokPos(), $2, $4);}
-  | ID LPAREN actuals RPAREN {$$ = new absyn::CallExp(scanner_.GetTokPos(), $1, $3);}
   | BREAK {$$ = new absyn::BreakExp(scanner_.GetTokPos());}
   | FOR ID ASSIGN exp TO exp DO exp {$$ = new absyn::ForExp(scanner_.GetTokPos(), $2, $4, $6, $8);}
   | LET decs IN expseq END {$$ = new absyn::LetExp(scanner_.GetTokPos(), $2, $4);}

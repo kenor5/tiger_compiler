@@ -4,7 +4,7 @@
 
 namespace absyn {
 
-#define INTTY type::IntTy::Instance();
+#define INTTY type::IntTy::Instance()
 
 void AbsynTree::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                            err::ErrorMsg *errormsg) const {
@@ -105,7 +105,7 @@ type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     for (auto it1 = l.begin(); it1 != l.end() && it2 != req.end(); it1++, it2++) {
       if (!(*it2)->IsSameType((*it1)->SemAnalyze(venv, tenv, labelcount, errormsg))){
         errormsg->Error(this->pos_, "para type mismatch");
-        break;
+        return INTTY;
       }
     }
     if (size1 < l.size()) {
@@ -328,8 +328,9 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   // type::ArrayTy *t2 ;
   t1 = t1->ActualTy();
-  if (typeid(*t1)!=typeid(type::ArrayTy)) {
-    errormsg->Error(this->pos_, "type mismatch");
+  
+  if (t1->kind_ != type::Ty::Array) {
+    errormsg->Error(this->pos_, "type mismatch, %d, %d", t1->kind_, type::Ty::Array);
     return INTTY;
   }
 
@@ -337,12 +338,12 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   type::Ty *t_size = this->size_->SemAnalyze(venv, tenv, labelcount, errormsg);
   // type::IntTy *t4;
   if (typeid(*t_size)!=typeid(type::IntTy)) {
-    errormsg->Error(this->pos_, "array size not fit");
+    errormsg->Error(size_->pos_, "array size not fit");
   }
 
   type::Ty *init_ty = this->init_->SemAnalyze(venv, tenv, labelcount, errormsg);
   if (!t3->ty_->IsSameType(init_ty)){
-    errormsg->Error(this->pos_, "init type mismatch");
+    errormsg->Error(this->init_->pos_, "init type mismatch");
   }
   return t3->ActualTy();
   
@@ -358,18 +359,20 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
   std::list<FunDec *> l = this->functions_->GetList();
-  for (auto &func: l) {
+  // 两个声明隔开可以，但是连着不行
+  for (auto func = l.begin(); func!= l.end(); func++) {
+    auto it = func;
+    it++;
+    for (;it != l.end(); it++)
+      if ((*it)->name_ == (*func)->name_)
+        errormsg->Error((*func)->pos_, "two functions have the same name");
 
-    if (venv->Look(func->name_)) {
-      errormsg->Error(func->pos_, "two functions have the same name");
-    }
+    type::TyList *tl = (*func)->params_->MakeFormalTyList(tenv, errormsg);
 
-    type::TyList *tl = func->params_->MakeFormalTyList(tenv, errormsg);
-
-    if (func->result_)
-      venv->Enter(func->name_, new env::FunEntry(tl, tenv->Look(func->result_)));
+    if ((*func)->result_)
+      venv->Enter((*func)->name_, new env::FunEntry(tl, tenv->Look((*func)->result_)));
     else 
-      venv->Enter(func->name_, new env::FunEntry(tl, type::VoidTy::Instance()));
+      venv->Enter((*func)->name_, new env::FunEntry(tl, type::VoidTy::Instance()));
   }
 
   for (auto &func: l) {
@@ -407,7 +410,7 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
     if (!t) {
       errormsg->Error(pos_, "undefined type of %s", this->typ_->Name().data());
     }else {
-      if (!init_t->IsSameType(t))
+      if (!t->IsSameType(init_t))
         errormsg->Error(this->pos_, "type mismatch");
       venv->Enter(this->var_,new env::VarEntry(t, false));
 
@@ -426,12 +429,16 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
                          err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
   std::list<NameAndTy *> l = this->types_->GetList();
-  for (auto &nat: l) {
-    if (tenv->Look(nat->name_)) {
-      errormsg->Error(this->pos_, "two types have the same name");
-    }else {
-      tenv->Enter(nat->name_, new type::NameTy(nat->name_, nullptr));
-    }
+  for (auto it = l.begin(); it != l.end(); it++) {
+    auto it2 = it;
+    it2++;
+    for (;it2 != l.end(); it2++)
+      if ((*it2)->name_ == (*it)->name_)
+        errormsg->Error(this->pos_, "two types have the same name");
+
+    tenv->Enter((*it)->name_, new type::NameTy((*it)->name_, nullptr));
+    
+
   }
 
   for (auto &nat: l) {
@@ -439,6 +446,7 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
     type::NameTy *nt = (type::NameTy *)ty;
 
     nt->ty_ = nat->ty_->SemAnalyze(tenv, errormsg);
+    // errormsg->Error(this->pos_, "%s , %d", nat->name_->Name().data(), nt->ty_->kind_);
   }
 
   for (auto &nat: l) {
@@ -463,6 +471,7 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
 type::Ty *NameTy::SemAnalyze(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
   type::Ty *t = tenv->Look(this->name_);
+  // errormsg->Error(this->pos_, "kind %d", t->kind_);
   if (t) return t;
   errormsg->Error(this->pos_, "undefined type");
   return INTTY;
@@ -479,9 +488,10 @@ type::Ty *ArrayTy::SemAnalyze(env::TEnvPtr tenv,
                               err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
   type::Ty *t = tenv->Look(this->array_);
-  if (t) return t->ActualTy();
+  // errormsg->Error(this->pos_, "kind %d", t->kind_);
+  if (t) return new type::ArrayTy(t);
   errormsg->Error(this->pos_, "undefined type");
-  return INTTY;
+  return new type::ArrayTy(INTTY);
 }
 
 } // namespace absyn

@@ -80,7 +80,7 @@ public:
                tenv_(std::make_unique<env::TEnv>()), 
                venv_(std::make_unique<env::VEnv>()) {
 
-              temp::Label *main_label = temp::LabelFactory::NamedLabel("tiger_main");
+              temp::Label *main_label = temp::LabelFactory::NamedLabel("tigermain");
 
               frame::Frame *main_frame = new frame::X64Frame(main_label);
 

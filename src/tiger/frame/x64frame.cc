@@ -82,6 +82,15 @@ namespace frame {
     
   }
 
+  temp::TempList *X64RegManager::OperateRegs(){
+    int list[] = {3, 0};
+    auto rt = new temp::TempList();
+    for (auto i:list) 
+      rt->Append(GetRegister(i));
+    
+    return rt;
+  }
+
   int X64RegManager::WordSize() {
         return 8;
   }
@@ -220,7 +229,7 @@ assem::Proc *ProcEntryExit3(frame::Frame *f, assem::InstrList *body){
         prolog += f->name_->Name() + ":\n";
 
         // 当参数超过6个时需要额外的栈空间存这些参数
-        int size_for_args = std::max(f->maxArgs - argRegs, 0) * ws;
+        int size_for_args = std::max(f->arg_num - argRegs, 0) * ws;
         // "subq $size, %rsp"
         prolog += "subq $" + std::to_string(size_for_args - f->offset_) + ", %rsp\n";
 

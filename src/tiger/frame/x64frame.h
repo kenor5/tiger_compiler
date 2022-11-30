@@ -45,6 +45,7 @@ class X64RegManager : public RegManager {
          * @return return-sink registers
          */
         [[nodiscard]] temp::TempList *ReturnSink() override;
+        [[nodiscard]] temp::TempList *OperateRegs() override;
 
         [[nodiscard]] temp::Temp *Dx()override;
         /**

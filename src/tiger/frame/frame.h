@@ -66,6 +66,8 @@ public:
 
   [[nodiscard]] virtual temp::Temp *Dx() = 0;
 
+  [[nodiscard]] virtual temp::TempList *OperateRegs() = 0;
+
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;
@@ -86,13 +88,13 @@ public:
   temp::Label *name_;
   std::list<Access *> formals_;
   int offset_;
-  int maxArgs;
+  int arg_num;
 
   tree::Stm *view_shift;
 
 
   explicit Frame(temp::Label *name) :
-  name_(name), offset_(0), maxArgs(0){}
+  name_(name), offset_(0), arg_num(0){}
 
   virtual frame::Access *AllocLocal(bool escape) {
             return nullptr;
