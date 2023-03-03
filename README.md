@@ -1,5 +1,49 @@
 # Tiger Compiler Labs in C++
 
+## Lab1：Straight-line Program Interpreter
+`lab1` 实现一个简单的 *直线式程序解释器*。
+
+主要完成了各语句和各表达式的 `int maxargs(A_stm)` 和 `void interp(A_stm)` 两个函数，给出给定`print`函数中参数的个数并解释
+
+主要代码位于 `src/straightline/slp.h` 和 `src/straightline/slp.cc` 中
+
+## Lab2：Lexical Analysis
+使用`flexc++`完成**词法分析**，将代码段拆解成token
+
+难点在于使用正则表达式匹配规则
+
+主要代码位于 `src/tiger/lex/tiger.lex` 中。
+
+## Lab3：Parsing
+
+运用 **Bisonc++** 来完成**语法分析**，用LR(1)将token变成抽象语法树
+
+主要代码位于 `src/tiger/parse/tiger.y` 中
+
+## Lab4：Type Checking
+
+主要完成了对各种 **表达式**、**变量** 和 **声明** 等的类型检查。还做了**语义分析** ，将抽象语法树转化成中间表示
+
+主要代码位于 `src/tiger/semant/semant.cc` 中
+
+## Lab5 Part1：Escape Analysis and Translation
+
+完成了**逃逸分析**和转化为**IR**表示
+
+主要代码位于 `src/tiger/escape/escape.cc`和 `src/tiger/translate/translate.cc`
+
+## Lab5：Tiger Compiler without register allocation
+
+完成了**帧栈** 和 **指令选择** 部分。
+
+主要代码位于 `src/tiger/codegen/codegen.cc` 
+
+## Lab6：Register Allocation
+
+完成**活跃分析** 和 **寄存器分配** 部分
+
+主要代码在`src/tiger/liveness/liveness.cc`和 `src/tiger/regalloc/regalloc.cc`
+
 ## Contents
 
 - [Tiger Compiler Labs in C++](#tiger-compiler-labs-in-c)
@@ -14,6 +58,7 @@
   - [Other Commands](#other-commands)
   - [Contributing to Tiger Compiler](#contributing-to-tiger-compiler)
   - [External Documentations](#external-documentations)
+
 
 ## Overview
 
